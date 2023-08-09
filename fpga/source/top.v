@@ -196,7 +196,7 @@ module top(
                 6'h0: rddata = dc_vscale_r;
                 6'h1: rddata = dc_active_vstart_r[8:1];
                 6'h5: rddata = fx_fill_length_low;
-                default: rddata = 8'h01;
+                default: rddata = 8'h03;
             endcase
         end
         5'h0C: begin
