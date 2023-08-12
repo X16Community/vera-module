@@ -17,8 +17,6 @@ module audio(
 
     // Audio FIFO interface
     input  wire        fifo_reset,
-    input  wire        fifo_restart,
-    input  wire        fifo_loop,
     input  wire  [7:0] fifo_wrdata,
     input  wire        fifo_write,
     output wire        fifo_full,
@@ -72,8 +70,6 @@ module audio(
 
         // Audio FIFO interface
         .fifo_reset(fifo_reset),
-        .fifo_restart(fifo_restart),
-        .fifo_loop(fifo_loop),
         .fifo_wrdata(fifo_wrdata),
         .fifo_write(fifo_write),
         .fifo_full(fifo_full),
