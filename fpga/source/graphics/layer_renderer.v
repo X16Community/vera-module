@@ -475,7 +475,7 @@ module layer_renderer(
     always @* begin
         cur_pixel_color[3:0] = tmp_pixel_color[3:0];
         if (color_depth != 0 && tmp_pixel_color[7:4] == 0 && tmp_pixel_color[3:0] != 0) begin
-            cur_pixel_color[7:4] = render_mapdata_r[7:4];
+            cur_pixel_color[7:4] = {render_mapdata_r[7] | attr_mode, render_mapdata_r[6:4] };
         end else begin
             cur_pixel_color[7:4] = tmp_pixel_color[7:4];
         end

@@ -204,7 +204,7 @@ module top(
                 6'h0: rddata = dc_border_color_r;
                 6'h1: rddata = dc_active_vstop_r[8:1];
                 6'h5: rddata = fx_fill_length_high;
-                default: rddata = 8'h01;
+                default: rddata = 8'h02;
             endcase
         end
 
