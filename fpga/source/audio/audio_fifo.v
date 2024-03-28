@@ -6,7 +6,8 @@ module audio_fifo(
 
     input  wire [7:0] wrdata,
     input  wire       wr_en,
-
+    input  wire       rd_rst,
+    
     output reg  [7:0] rddata,
     input  wire       rd_en,
     
@@ -42,6 +43,10 @@ module audio_fifo(
             if (rd_en && !empty) begin
                 rddata <= mem_r[rdidx_r];
                 rdidx_r <= rdidx_next;
+            end
+
+            if (rd_rst) begin
+                rdidx_r <= 0;
             end
         end
     end
