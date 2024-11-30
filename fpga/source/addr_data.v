@@ -224,7 +224,7 @@ module addr_data(
             5'h1F: incr_decr_0 = -11'd640;
         endcase
 
-        incr_decr_0_on_1 = incr_decr_0
+        incr_decr_0_on_1 = incr_decr_0;
 
         if ({vram_addr_decr_0_r, vram_addr_incr_0_r} == 5'h00) begin
             incr_decr_0 = (fx_4bit_mode_r && vram_addr_nib_incr_0_r) ? incr_0_nib : 11'd0;
