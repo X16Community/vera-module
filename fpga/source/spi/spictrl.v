@@ -25,12 +25,12 @@ module spictrl(
     assign spi_mosi = tx_shift_r[7];
     assign rxdata = rx_shift_r;
 
-    reg [4:0] div_cnt_r;
+    reg [5:0] div_cnt_r;
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             div_cnt_r <= 0;
         end else begin
-            div_cnt_r <= div_cnt_r + 5'd1;
+            div_cnt_r <= div_cnt_r + 6'd1;
         end
     end
 
@@ -58,7 +58,7 @@ module spictrl(
 	end // else: !if(rst)
    end
    
-    wire clk_speed = slow ? (div_cnt_r == 'd31) : clk;
+    wire clk_speed = slow ? (div_cnt_r > 'd31) : clk;
     wire clk_gated = (bitcnt_r > 'b1) ? clk_speed : 1'b0;
    
     assign spi_sck = clk_gated;
