@@ -34,34 +34,55 @@ module spictrl(
         end
     end
 
-    wire clk_pulse = slow ? (div_cnt_r == 'd31) : 1'b1;
+   reg txstart_r;
+   always @(posedge clk or posedge rst) begin
+      if (rst) 
+	begin
+           txstart_r <= 1'b0;
+        end 
+      else
+	begin
+	   if (txstart_r) 
+	     begin
+		if (busy)
+		  begin
+		     // Transmit has begun, clear registered start trigger
+		     txstart_r <= 1'b0;
+		  end
+	     end
+	   else
+	     if (txstart) 
+	       begin
+		  txstart_r <= 1'b1;
+               end
+	end // else: !if(rst)
+   end
+   
+    wire clk_speed = slow ? (div_cnt_r == 'd31) : clk;
+    wire clk_gated = (bitcnt_r > 'b1) ? clk_speed : 1'b0;
+   
+    assign spi_sck = clk_gated;
 
-    reg clk_r;
-    assign spi_sck = clk_r;
-
-    always @(posedge clk or posedge rst) begin
+    always @(posedge clk_speed or posedge rst) begin
         if (rst) begin
             tx_shift_r <= 0;
             rx_shift_r <= 0;
             bitcnt_r   <= 0;
-            clk_r      <= 0;
 
         end else begin
             if (busy) begin
-                if (clk_pulse) begin
-                    clk_r <= !clk_r;
-                    if (clk_r) begin
-                        tx_shift_r <= {tx_shift_r[6:0], 1'b0};
-                        bitcnt_r <= bitcnt_r - 4'd1;
-                    end else begin
-                        rx_shift_r <= {rx_shift_r[6:0], spi_miso};
-                    end
-                end
+	       if (bitcnt_r != 4'd0) begin
+		  tx_shift_r <= {tx_shift_r[6:0], 1'b0};
+	       end
+	       if (bitcnt_r != 4'd9) begin
+		  rx_shift_r <= {rx_shift_r[6:0], spi_miso};
+	       end
+	       bitcnt_r <= bitcnt_r - 4'd1;
 
             end else begin
-                if (txstart) begin
+                if (txstart_r) begin
                     tx_shift_r <= txdata;
-                    bitcnt_r <= 4'd8;
+                    bitcnt_r <= 4'd9;
                 end
             end
         end
