@@ -160,8 +160,8 @@ module psg(
     // Signal generation
     //////////////////////////////////////////////////////////////////////////
     wire [5:0] signal_pw       = (cur_phase[16:10] > {1'b0, cur_pulsewidth}) ? 6'd0 : 6'd63;
-    wire [5:0] signal_saw      = cur_phase[16:11];
-    wire [5:0] signal_triangle = cur_phase[16] ? ~cur_phase[15:10] : cur_phase[15:10];
+    wire [5:0] signal_saw      = cur_phase[16:11] ^ ~cur_pulsewidth[5:0];
+    wire [5:0] signal_triangle = (cur_phase[16] ? ~cur_phase[15:10] : cur_phase[15:10]) ^ ~cur_pulsewidth[5:0];
     wire [5:0] signal_noise    = cur_noise;
 
     reg [5:0] signal;
