@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<RadiantProject version="4.2" title="vera_module" device="iCE40UP5K-SG48I" performance_grade="High-Performance_1.2V" default_implementation="impl">
+<RadiantProject version="4.2" radiant="2024.2.0.3.0" title="vera_module" device="iCE40UP5K-SG48I" performance_grade="High-Performance_1.2V" family_int="ice40tp" device_int="itpa08" package_int="SG48" operation_int="IND" speed_int="6" default_implementation="impl">
     <Options/>
     <Implementation title="impl" dir="impl" description="impl" synthesis="lse" default_strategy="Strategy1">
         <Options def_top="top" top="top"/>
@@ -81,8 +81,8 @@
         <Source name="source/mult_accum.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
-        <Source name="source/vera_module.ldc" type="LSE Design Constraints File" type_short="LDC">
-            <Options/>
+        <Source name="source/vera_module.ldc" type="Pre-Synthesis Constraints File" type_short="SDC">
+            <Options sdc_synthesis_type="LSE"/>
         </Source>
         <Source name="source/vera_module.pdc" type="Physical Constraints File" type_short="PDC">
             <Options/>
