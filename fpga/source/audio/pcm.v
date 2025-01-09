@@ -14,6 +14,8 @@ module pcm(
 
     // Audio FIFO interface
     input  wire        fifo_reset,
+    input  wire        fifo_restart,
+    input  wire        fifo_loop,
     input  wire  [7:0] fifo_wrdata,
     input  wire        fifo_write,
     output wire        fifo_full,
@@ -22,7 +24,7 @@ module pcm(
 
     // Audio output
     output wire [15:0] left_audio,
-    output wire [15:0] right_audio) /* synthesis syn_hier = "hard" */;
+    output wire [15:0] right_audio);
 
 
     //////////////////////////////////////////////////////////////////////////
@@ -42,6 +44,7 @@ module pcm(
 
         .rddata(fifo_rddata),
         .rd_en(fifo_read),
+        .rd_rst(fifo_restart_r),
         
         .empty(fifo_empty),
         .almost_empty(fifo_almost_empty),
@@ -82,6 +85,8 @@ module pcm(
         FETCH_R_15_8 = 3'd4,
         DONE         = 3'd5;
 
+    reg        fifo_restart_r, fifo_restart_next;
+    reg        fifo_restart_l_r, fifo_restart_l_next;
     reg  [2:0] state_r, state_next;
     reg [15:0] left_sample_r,  left_sample_next;
     reg [15:0] right_sample_r, right_sample_next;
@@ -93,25 +98,32 @@ module pcm(
     wire [15:0] right_sample = mode_16bit ? right_sample_r : {right_sample_r[7:0], 8'b0};
 
     always @* begin
-        state_next        = state_r;
-        left_sample_next  = left_sample_r;
-        right_sample_next = right_sample_r;
-        left_output_next  = left_output_r;
-        right_output_next = right_output_r;
-        fifo_read         = 0;
-
+        state_next          = state_r;
+        left_sample_next    = left_sample_r;
+        right_sample_next   = right_sample_r;
+        left_output_next    = left_output_r;
+        right_output_next   = right_output_r;
+        fifo_read           = 0;
+        fifo_restart_l_next = fifo_restart_l_r | fifo_restart;
+        fifo_restart_next   = 0;
+        
         case (state_r)
             IDLE: begin
-                if (fifo_empty) begin
-                    left_output_next  = 0;
-                    right_output_next = 0;
+                if (fifo_restart_l_r) begin
+                    fifo_restart_next   = 1;
+                    fifo_restart_l_next = 0;
                 end
 
-                if (new_sample && !fifo_empty) begin
-                    left_sample_next  = 0;
-                    right_sample_next = 0;
-                    state_next        = FETCH_L_7_0;
-                    fifo_read         = 1;
+                if (new_sample) begin
+                    if (fifo_empty) begin
+                        left_output_next  = 0;
+                        right_output_next = 0;
+                    end else begin
+                        left_sample_next  = 0;
+                        right_sample_next = 0;
+                        state_next        = FETCH_L_7_0;
+                        fifo_read         = 1;
+                    end
                 end
             end
 
@@ -162,6 +174,9 @@ module pcm(
             end
         endcase
 
+        if (fifo_empty && fifo_loop) begin
+            fifo_restart_next = 1;
+        end
         if (state_r != DONE && fifo_empty) begin
             fifo_read  = 0;
             state_next = IDLE;
@@ -171,18 +186,22 @@ module pcm(
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            state_r        <= IDLE;
-            left_sample_r  <= 0;
-            right_sample_r <= 0;
-            left_output_r  <= 0;
-            right_output_r <= 0;
-        
+            state_r          <= IDLE;
+            left_sample_r    <= 0;
+            right_sample_r   <= 0;
+            left_output_r    <= 0;
+            right_output_r   <= 0;
+            fifo_restart_r   <= 0;
+            fifo_restart_l_r <= 0;
+            
         end else begin
             state_r        <= state_next;
             left_sample_r  <= left_sample_next;
             right_sample_r <= right_sample_next;
             left_output_r  <= left_output_next;
             right_output_r <= right_output_next;
+            fifo_restart_r <= fifo_restart_next;
+            fifo_restart_l_r <= fifo_restart_l_next;
         end
     end
 
