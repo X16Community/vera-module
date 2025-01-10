@@ -25,43 +25,95 @@ module spictrl(
     assign spi_mosi = tx_shift_r[7];
     assign rxdata = rx_shift_r;
 
-    reg [4:0] div_cnt_r;
+    reg slow_clk_r;
+    reg [5:0] div_cnt_r;
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             div_cnt_r <= 0;
-        end else begin
-            div_cnt_r <= div_cnt_r + 5'd1;
-        end
+            slow_clk_r <= 0;
+        end else 
+	  begin
+             div_cnt_r <= div_cnt_r + 6'd1;
+	     if (div_cnt_r == 6'd0)
+	       begin
+		  slow_clk_r <= 0;
+	       end
+	     else if (div_cnt_r == 6'd31)
+	       begin
+		  slow_clk_r <= 1;
+	       end
+	  end
     end
 
-    wire clk_pulse = slow ? (div_cnt_r == 'd31) : 1'b1;
+   reg txstart_r;
+   always @(posedge clk or posedge rst) begin
+      if (rst) 
+	begin
+           txstart_r <= 1'b0;
+        end 
+      else
+	begin
+	   if (txstart_r) 
+	     begin
+		if (busy)
+		  begin
+		     // Transmit has begun, clear registered start trigger
+		     txstart_r <= 1'b0;
+		  end
+	     end
+	   else
+	     if (txstart) 
+	       begin
+		  txstart_r <= 1'b1;
+               end
+	end // else: !if(rst)
+   end
 
-    reg clk_r;
-    assign spi_sck = clk_r;
+   wire clk_speed = slow ? slow_clk_r : clk;
+   
+   reg clk_gate_r;
+   always @(negedge clk_speed or posedge rst) begin
+      if (rst) 
+	begin
+           clk_gate_r <= 1'b0;
+        end 
+      else
+	begin
+	   if (bitcnt_r > 4'd1)
+	     begin
+		clk_gate_r <= 1'b1;
+	     end
+	   else
+	     begin
+		clk_gate_r <= 1'b0;
+	     end
+	end
+   end
+      
+    wire clk_gated = clk_gate_r ? clk_speed : 1'b0;
+   
+    assign spi_sck = clk_gated;
 
-    always @(posedge clk or posedge rst) begin
+    always @(posedge clk_speed or posedge rst) begin
         if (rst) begin
             tx_shift_r <= 0;
             rx_shift_r <= 0;
             bitcnt_r   <= 0;
-            clk_r      <= 0;
 
         end else begin
             if (busy) begin
-                if (clk_pulse) begin
-                    clk_r <= !clk_r;
-                    if (clk_r) begin
-                        tx_shift_r <= {tx_shift_r[6:0], 1'b0};
-                        bitcnt_r <= bitcnt_r - 4'd1;
-                    end else begin
-                        rx_shift_r <= {rx_shift_r[6:0], spi_miso};
-                    end
-                end
+	       if (bitcnt_r != 4'd0) begin
+		  tx_shift_r <= {tx_shift_r[6:0], 1'b0};
+	       end
+	       if (bitcnt_r != 4'd9) begin
+		  rx_shift_r <= {rx_shift_r[6:0], spi_miso};
+	       end
+	       bitcnt_r <= bitcnt_r - 4'd1;
 
             end else begin
-                if (txstart) begin
+                if (txstart_r) begin
                     tx_shift_r <= txdata;
-                    bitcnt_r <= 4'd8;
+                    bitcnt_r <= 4'd9;
                 end
             end
         end

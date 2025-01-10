@@ -10,3 +10,4 @@ vera_module_tcr.dir/
 *.xml
 *.vcd
 *.bak
+promote.pfl
