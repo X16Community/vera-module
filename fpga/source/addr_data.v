@@ -173,13 +173,24 @@ module addr_data(
     // Address incrementers
     //////////////////////////////////////////////////////////////////////////
     
-    reg  signed [10:0] incr_decr_0;
+    reg  signed [10:0] incr_decr_0, incr_decr_0_on_1;
     wire signed [10:0] incr_0_nib, decr_0_nib;
     assign incr_0_nib  = vram_addr_nib_0_r ? 11'd1 : 11'd0; 
     assign decr_0_nib  = vram_addr_nib_0_r ? 11'd0 : -11'd1; 
+
+    reg  signed [10:0] incr_decr_1;
+    wire signed [10:0] incr_1_16bit_hop_4;
+    wire signed [10:0] incr_1_16bit_hop_320;
+    wire signed [10:0] incr_1_nib, decr_1_nib;
+
+    assign incr_1_16bit_hop_4 = (vram_addr_1_r[1:0] == fx_16bit_hop_start_index_r) ? 11'd1 : 11'd3;
+    assign incr_1_16bit_hop_320 = (vram_addr_1_r[1:0] == fx_16bit_hop_start_index_r) ? 11'd1 : 11'd319;
+    assign incr_1_nib  = vram_addr_nib_1_r ? 11'd1 : 11'd0; 
+    assign decr_1_nib  = vram_addr_nib_1_r ? 11'd0 : -11'd1; 
+
     always @* begin
         case ({vram_addr_decr_0_r, vram_addr_incr_0_r})
-            5'h00: incr_decr_0 = (fx_4bit_mode_r && vram_addr_nib_incr_0_r) ? incr_0_nib : 11'd0;
+            5'h00: incr_decr_0 = 11'd0;
             5'h01: incr_decr_0 = 11'd1;
             5'h02: incr_decr_0 = 11'd2;
             5'h03: incr_decr_0 = 11'd4;
@@ -195,7 +206,7 @@ module addr_data(
             5'h0D: incr_decr_0 = 11'd160;
             5'h0E: incr_decr_0 = 11'd320;
             5'h0F: incr_decr_0 = 11'd640;
-            5'h10: incr_decr_0 = (fx_4bit_mode_r && vram_addr_nib_incr_0_r) ? decr_0_nib : -11'd0;
+            5'h10: incr_decr_0 = -11'd0;
             5'h11: incr_decr_0 = -11'd1;
             5'h12: incr_decr_0 = -11'd2;
             5'h13: incr_decr_0 = -11'd4;
@@ -212,17 +223,19 @@ module addr_data(
             5'h1E: incr_decr_0 = -11'd320;
             5'h1F: incr_decr_0 = -11'd640;
         endcase
+
+        incr_decr_0_on_1 = incr_decr_0;
+
+        if ({vram_addr_decr_0_r, vram_addr_incr_0_r} == 5'h00) begin
+            incr_decr_0 = (fx_4bit_mode_r && vram_addr_nib_incr_0_r) ? incr_0_nib : 11'd0;
+            incr_decr_0_on_1 = (fx_4bit_mode_r && vram_addr_nib_incr_0_r) ? incr_1_nib : 11'd0;
+        end 
+        if ({vram_addr_decr_0_r, vram_addr_incr_0_r} == 5'h10) begin
+            incr_decr_0 = (fx_4bit_mode_r && vram_addr_nib_incr_0_r) ? decr_0_nib : -11'd0;
+            incr_decr_0_on_1 = (fx_4bit_mode_r && vram_addr_nib_incr_0_r) ? decr_1_nib : -11'd0;
+        end
     end
 
-    reg  signed [10:0] incr_decr_1;
-    wire signed [10:0] incr_1_16bit_hop_4;
-    wire signed [10:0] incr_1_16bit_hop_320;
-    wire signed [10:0] incr_1_nib, decr_1_nib;
-    
-    assign incr_1_16bit_hop_4 = (vram_addr_1_r[1:0] == fx_16bit_hop_start_index_r) ? 11'd1 : 11'd3;
-    assign incr_1_16bit_hop_320 = (vram_addr_1_r[1:0] == fx_16bit_hop_start_index_r) ? 11'd1 : 11'd319;
-    assign incr_1_nib  = vram_addr_nib_1_r ? 11'd1 : 11'd0; 
-    assign decr_1_nib  = vram_addr_nib_1_r ? 11'd0 : -11'd1; 
     always @* begin
         case ({vram_addr_decr_1_r, vram_addr_incr_1_r})
             5'h00: incr_decr_1 = 11'd0;
@@ -258,7 +271,7 @@ module addr_data(
             5'h1E: incr_decr_1 = -11'd320;
             5'h1F: incr_decr_1 = -11'd640;
         endcase
-        
+
         if ({vram_addr_decr_1_r, vram_addr_incr_1_r} == 5'h00) begin
             incr_decr_1 = (fx_4bit_mode_r && vram_addr_nib_incr_1_r) ? incr_1_nib : 11'd0;
         end 
@@ -277,7 +290,7 @@ module addr_data(
     // Note: we are sign extending here, since it might be a negative number
     wire [16:0] vram_addr_0_incr_decr_0  = vram_addr_0_r + { {6{incr_decr_0[10]}}, incr_decr_0} /* synthesis syn_keep=1 */;
     wire [16:0] vram_addr_1_incr_decr_1  = vram_addr_1_r + { {6{incr_decr_1[10]}}, incr_decr_1} /* synthesis syn_keep=1 */;
-    wire [16:0] vram_addr_1_incr_decr_10 = vram_addr_1_incr_decr_1 + { {6{incr_decr_0[10]}}, incr_decr_0};
+    wire [16:0] vram_addr_1_incr_decr_10 = vram_addr_1_incr_decr_1 + { {6{incr_decr_0_on_1[10]}}, incr_decr_0_on_1};
 
      // We *flip* the nibble-bit if a nibble-incrementer is active
     wire        vram_addr_nib_0_incr_decr_0  = vram_addr_nib_0_r ^ (fx_4bit_mode_r && vram_addr_nib_incr_0_r && !vram_addr_incr_0_r);
